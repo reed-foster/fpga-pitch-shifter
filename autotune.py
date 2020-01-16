@@ -8,8 +8,8 @@ import numpy as np
 
 filename = 'sinusoid.wav'
 fs = 44100
-omega = lambda t: 500/(5*fs)*(t/2+2.5*fs)
-sinusoid = [cos(2*pi*t*omega(t)/fs) for t in range(5*fs)]
+omega = lambda t: 1000/(2*fs)*(t/2+fs)
+sinusoid = [cos(2*pi*t*omega(t)/fs) for t in range(2*fs)]
 wav_write(sinusoid, fs, f'sinusoid.wav')
 
 signal, fs = wav_read(filename)
@@ -20,9 +20,8 @@ in_key = [16.35, 32.70, 65.41, 130.8, 261.6, 523.3, 1047, 2093, 4186]
 def get_scale(dft, in_key, fs):
     k_max = np.abs(dft[:len(dft)//2]).argmax(axis=0)
     f = k_max/len(dft)*fs
+    print(f'fundamental frequency: {f}')
     note = min(in_key, key=lambda f0: abs(f0 - f))
-    print(f)
-    print(note)
     scale_amount = note/f
     return scale_amount
 
@@ -41,17 +40,20 @@ def resample(signal, scale_amount):
     return resampled
         
 
-fft_points = 1024
-num_ffts = (len(signal) - fft_points)//fft_points + 1
-autotuned = []
+dft_size = 512
+step_size = 64
+num_ffts = (len(signal) - dft_size)//step_size+ 1
+autotuned = np.zeros(len(signal))
+window = np.hanning(dft_size) #np.array([1 - cos(2*pi*n/(dft_size - 1)) for n in range(dft_size)])
 for bin in range(num_ffts):
-    dft = np.fft.fft(signal[bin*fft_points:bin*fft_points+fft_points])
+    sample = signal[bin*step_size:bin*step_size+dft_size]
+    dft = np.fft.fft(np.multiply(sample, window))
     # TODO get actual frequencies (that were split between bins) by doing phase shift stuff
     scale_amount = get_scale(dft, in_key, fs)
     scaled_dft = resample(dft, scale_amount)
     scaled_signal = np.fft.ifft(scaled_dft)
-    print(len(scaled_signal))
-    #autotuned = np.append(autotuned, resample(scaled_signal, 1/scale_amount))
-    autotuned = np.append(autotuned, scaled_signal)
+    windowed_scaled_signal = np.multiply(scaled_signal, np.hanning(len(scaled_dft)))
+    print(f'scale_amount: {scale_amount}')
+    autotuned[bin*step_size:bin*step_size+len(scaled_dft)] = np.add(autotuned[bin*step_size:bin*step_size+len(scaled_dft)], windowed_scaled_signal)
 
 wav_write(autotuned, fs, f'{filename.split(".")[0]}_shifted.wav')
