@@ -6,11 +6,11 @@ j = 1j
 from lib6003.audio import *
 import numpy as np
 
-filename = 'sinusoid.wav'
+filename = 'voice.wav'
 fs = 44100
-omega = lambda t: 1000/(2*fs)*(t/2+fs)
-sinusoid = [cos(2*pi*t*omega(t)/fs) for t in range(2*fs)]
-wav_write(sinusoid, fs, f'sinusoid.wav')
+#omega = lambda t: 1000/(2*fs)*(t/2+fs)
+#sinusoid = [cos(2*pi*t*omega(t)/fs) for t in range(2*fs)]
+#wav_write(sinusoid, fs, f'sinusoid.wav')
 
 signal, fs = wav_read(filename)
 #in_key = [16.35, 18.35, 20.60, 21.83, 24.50, 27.50, 30.87, 32.70, 36.71, 41.20, 43.65, 49.00, 55.00, 61.74, 65.41, 73.42, 82.41, 87.31, 98.00, 110.0, 123.5, 130.8, 146.8, 164.8, 174.6, 196.0, 220.0, 246.9, 261.6, 293.7, 329.6, 349.2, 392.0, 440.0, 493.9, 523.3, 587.3, 659.3, 698.5, 784.0, 880.0, 987.8, 1047, 1175, 1319, 1397, 1568, 1760, 1976, 2093, 2349, 2637, 2794, 3136, 3520, 3951, 4186, 4699, 5274, 5588, 6272, 7040, 7902]
@@ -48,7 +48,6 @@ t_a = step_size_analysis/fs
 
 num_ffts = (len(signal) - dft_size)//step_size_analysis+ 1
 
-
 window = np.ones(dft_size)#np.hanning(dft_size) 
 
 last_phase_synthesis = np.zeros(dft_size)
@@ -63,23 +62,28 @@ for bin in range(num_ffts):
 
     mag = abs(dft)
     phase = np.arctan2(dft.imag, dft.real)
+    last_phase_analysis = phase
     
-    k_max = mag[:len(mag)//2].argmax(axis=0)
+    # ignore DC component
+    k_max = mag[1:len(mag)//2].argmax(axis=0)+1
     f_max = k_max/dft_size*fs
     f_n = lambda n: (phase[k_max] - last_phase_analysis[k_max] + 2*pi*n)/(2*pi*t_a)
     fundamental = f_n(min(range(step_size_analysis), key=lambda n: abs(f_n(n) - f_max)))
-    #print(fundamental)
-    last_phase_analysis = phase
+    
 
     note = min(in_key, key=lambda f0: abs(f0 - fundamental))
     scale_factor = note/fundamental
     print(scale_factor)
     
+    phase = last_phase_synthesis + 2*pi*fundamental*t_a
+
+    #corrected_dft = resample(np.multiply(mag, np.exp(j*phase)), scale_factor)
     corrected_dft = resample(dft, scale_factor)
     new_signal = np.multiply(resample(np.fft.ifft(corrected_dft), 1/scale_factor, dft_size), window)/(dft_size/step_size_analysis)
 
     start = int(bin*step_size_analysis)
     end = start + len(new_signal)
+    print(len(new_signal))
     autotuned[start:end] = np.add(autotuned[start:end], new_signal)
 
 #resampled_signal = resample(autotuned, 1/scale_factor)
