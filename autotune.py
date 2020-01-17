@@ -43,37 +43,44 @@ def resample(signal, scale_amount, target_size=None):
         
 
 dft_size = 1024
-step_size = 256
-osamp = dft_size/step_size
-freq_per_bin = fs/dft_size
-num_ffts = (len(signal) - dft_size)//step_size+ 1
+step_size_analysis = dft_size#256 
+t_a = step_size_analysis/fs
+
+num_ffts = (len(signal) - dft_size)//step_size_analysis+ 1
+
+
+window = np.ones(dft_size)#np.hanning(dft_size) 
+
+last_phase_synthesis = np.zeros(dft_size)
+last_phase_analysis = np.zeros(dft_size)
+bin_freq = np.array([k*2*pi/dft_size for k in range(dft_size)])
+
 autotuned = np.zeros(len(signal))
-window = np.hanning(dft_size) #np.array([1 - cos(2*pi*n/(dft_size - 1)) for n in range(dft_size)])
+
 for bin in range(num_ffts):
-    sample = signal[bin*step_size:bin*step_size+dft_size]
+    sample = signal[bin*step_size_analysis:bin*step_size_analysis+dft_size]
     dft = np.fft.fft(np.multiply(sample, window))
-    # TODO get actual frequencies (that were split between bins) by doing phase shift stuff
+
     mag = abs(dft)
     phase = np.arctan2(dft.imag, dft.real)
-    freq = np.zeros(mag.shape)
-    last_phase = 0
-    for k in range(dft_size):
-        # delta phase is difference between successive <X[k] minus the expected phase difference based on k
-        delta_phase = (phase[k] - last_phase) - k*2*pi/osamp
-        delta_phase = (delta_phase + pi) % 2*pi - pi # remap delta_phase to [-pi, pi]
-        delta_phase *= osamp/(2*pi)
-        delta_phase = k*freq_per_bin + delta_phase*freq_per_bin
-
-        freq[k] = delta_phase
-        last_phase = phase[k]
     
-    fundamental = freq[mag[:len(dft)//2].argmax(axis=0)]
-    scale_amount = 0.5#min(in_key, key=lambda f0: abs(f0 - fundamental))/fundamental
-    scaled_dft = resample(dft, scale_amount)
-    scaled_signal = np.fft.ifft(scaled_dft)
-    rescaled_signal = resample(scaled_signal, 1/scale_amount, dft_size)
-    windowed_scaled_signal = np.multiply(rescaled_signal, window)
-    #print(f'scale_amount: {scale_amount}')
-    autotuned[bin*step_size:bin*step_size+dft_size] = np.add(autotuned[bin*step_size:bin*step_size+dft_size], windowed_scaled_signal)
+    k_max = mag[:len(mag)//2].argmax(axis=0)
+    f_max = k_max/dft_size*fs
+    f_n = lambda n: (phase[k_max] - last_phase_analysis[k_max] + 2*pi*n)/(2*pi*t_a)
+    fundamental = f_n(min(range(step_size_analysis), key=lambda n: abs(f_n(n) - f_max)))
+    #print(fundamental)
+    last_phase_analysis = phase
 
+    note = min(in_key, key=lambda f0: abs(f0 - fundamental))
+    scale_factor = note/fundamental
+    print(scale_factor)
+    
+    corrected_dft = resample(dft, scale_factor)
+    new_signal = np.multiply(resample(np.fft.ifft(corrected_dft), 1/scale_factor, dft_size), window)/(dft_size/step_size_analysis)
+
+    start = int(bin*step_size_analysis)
+    end = start + len(new_signal)
+    autotuned[start:end] = np.add(autotuned[start:end], new_signal)
+
+#resampled_signal = resample(autotuned, 1/scale_factor)
 wav_write(autotuned, fs, f'{filename.split(".")[0]}_shifted.wav')
