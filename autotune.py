@@ -17,14 +17,6 @@ signal, fs = wav_read(filename)
 
 in_key = [16.35, 32.70, 65.41, 130.8, 261.6, 523.3, 1047, 2093, 4186]
 
-def get_scale(dft, in_key, fs):
-    k_max = np.abs(dft[:len(dft)//2]).argmax(axis=0)
-    f = k_max/len(dft)*fs
-    print(f'fundamental frequency: {f}')
-    note = min(in_key, key=lambda f0: abs(f0 - f))
-    scale_amount = note/f
-    return scale_amount
-
 def resample(signal, scale_amount, target_size=None):
     '''
     resample a signal with linear interpolation
@@ -64,27 +56,25 @@ for bin in range(num_ffts):
     phase = np.arctan2(dft.imag, dft.real)
     last_phase_analysis = phase
     
+    # get bin with maximum amplitude
     # ignore DC component
     k_max = mag[1:len(mag)//2].argmax(axis=0)+1
     f_max = k_max/dft_size*fs
+    # use phase difference to get closer approximation of fundamental frequency
     f_n = lambda n: (phase[k_max] - last_phase_analysis[k_max] + 2*pi*n)/(2*pi*t_a)
     fundamental = f_n(min(range(step_size_analysis), key=lambda n: abs(f_n(n) - f_max)))
     
-
+    # get scaling factor that shifts fundamental frequency to the nearest "in-key" frequency
     note = min(in_key, key=lambda f0: abs(f0 - fundamental))
     scale_factor = note/fundamental
-    print(scale_factor)
     
     phase = last_phase_synthesis + 2*pi*fundamental*t_a
 
-    #corrected_dft = resample(np.multiply(mag, np.exp(j*phase)), scale_factor)
     corrected_dft = resample(dft, scale_factor)
     new_signal = np.multiply(resample(np.fft.ifft(corrected_dft), 1/scale_factor, dft_size), window)/(dft_size/step_size_analysis)
 
     start = int(bin*step_size_analysis)
     end = start + len(new_signal)
-    print(len(new_signal))
     autotuned[start:end] = np.add(autotuned[start:end], new_signal)
 
-#resampled_signal = resample(autotuned, 1/scale_factor)
 wav_write(autotuned, fs, f'{filename.split(".")[0]}_shifted.wav')
