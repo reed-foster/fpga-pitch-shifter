@@ -1,3 +1,4 @@
 *.wav
 env/
 .vscode/
+*.mp3
