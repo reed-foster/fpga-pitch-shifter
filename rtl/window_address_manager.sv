@@ -17,7 +17,7 @@ module window_address_manager
     );
     // architecture
 
-    localparam SHIFT = 2 ** (ADDRWIDTH - 1); // oversampling factor of 2
+    localparam SHIFT = 2 ** (ADDRWIDTH - 1) - 1; // oversampling factor of 2
     localparam WINDOW_DONE = 2 ** (ADDRWIDTH) - 1;
 
     // extra bit to detect rollover count
