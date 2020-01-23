@@ -16,7 +16,9 @@ module harmonic_product_spectrum
         
         output [K_WIDTH-1:0] k,
         output [K_WIDTH-1:0] ram_addr, // read address
-        output ram_enable // read enable
+        output ram_enable, // read enable
+        
+        output triple_complete // used for data_valid after multiply stage
     );
     // architecture
     
@@ -42,7 +44,7 @@ module harmonic_product_spectrum
         begin
             data_received <= 0;
             orig_counter <= 0;
-            div_three <= 0;
+            div_three_prescale <= 0;
         end
         else
         begin
@@ -77,6 +79,7 @@ module harmonic_product_spectrum
         end
     end
     
-    assign ram_addr <= (clock_divide == 0) ? orig_counter : (clock_divide == 1) ? div2_counter : (clock_divide == 2) ? div3_counter : 0;
+    assign ram_addr = (clock_divide == 2'b0) ? orig_counter : ((clock_divide == 2'b1) ? div2_counter : ((clock_divide == 2'b10) ? div3_counter : 0));
+    assign triple_complete = counter_increment;
 
 endmodule
