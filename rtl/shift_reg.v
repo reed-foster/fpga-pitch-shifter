@@ -4,30 +4,30 @@
 module shift_reg
     #( // parameters
         parameter DELAY = 1,
-        parameter DATA_WIDTH = 1
+        parameter DATAWIDTH = 1
     )( // ports
         input clock,
         input reset_n,
         input shift,
-        input [DATA_WIDTH-1:0] data_in,
-        output [DATA_WIDTH-1:0] data_out
+        input [DATAWIDTH-1:0] data_in,
+        output [DATAWIDTH-1:0] data_out
     );
     // architecture
     
-    reg [DATA_WIDTH-1:0] data [DELAY-1:0];
+    reg [DATAWIDTH-1:0] data [DELAY-1:0];
 
     always @(posedge clock)
     begin
         if (reset_n == 0)
         begin
-            for (i=0; i<DELAY; i=i+1) data[i] <= 0;
+            for (integer i=0; i<DELAY; i=i+1) data[i] <= 0;
         end
         else
         begin
             if (shift)
             begin
                 data[0] <= data_in;
-                for (i=1; i<DELAY; i=i+1) data[i] <= data[i-1];
+                for (integer i=1; i<DELAY; i=i+1) data[i] <= data[i-1];
             end
         end
     end

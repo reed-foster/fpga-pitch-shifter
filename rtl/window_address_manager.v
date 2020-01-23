@@ -3,7 +3,7 @@
 
 module window_address_manager
     #( // parameters
-        parameter ADDRWIDTH = 12,
+        parameter ADDRWIDTH = 12
     )( // ports
         input clock,
         input reset_n,
@@ -12,8 +12,11 @@ module window_address_manager
         output full,
         output empty,
         output [ADDRWIDTH-1:0] read_addr,
-        output [ADDRWIDTH-1:0] write_addr
-        output [ADDRWIDTH-1:0] window_addr
+        output [ADDRWIDTH-1:0] write_addr,
+        output [ADDRWIDTH-1:0] window_addr,
+        output read,
+        output write,
+        output last
     );
     // architecture
 
@@ -23,7 +26,7 @@ module window_address_manager
     // extra bit to detect rollover count
     // if [width-1:0] bits are equal, and the msbs are different, fifo is full
     // if lsbs are equal and msbs are the same, fifo is empty
-    reg [ADDRWIDTH:0] deq_addr, enq_addr; // dequeue and enqueue addresses
+    reg [ADDRWIDTH:0] deq_addr = 0, enq_addr = 0; // dequeue and enqueue addresses
     
     // deq_addr and (deq_addr - SHIFT) are multiplexed based on how far into the window we are for full detection
     // (don't want to overwrite data that needs to be read again for a subsequent window)
@@ -35,7 +38,7 @@ module window_address_manager
     wire full_t, empty_t;
 
     // counter to track which index we're at in a window (used for window function LUT)
-    reg [ADDRWIDTH-1:0] window_addr_t;
+    reg [ADDRWIDTH-1:0] window_addr_t = 0;
 
     // ram
     always @(posedge clock)
@@ -44,6 +47,7 @@ module window_address_manager
         begin 
             deq_addr <= 0;
             enq_addr <= 0;
+            window_addr_t <= 0;
         end 
         else
         begin
@@ -70,12 +74,16 @@ module window_address_manager
     assign write_addr = enq_addr;
 
     assign shift_back = (window_addr_t == WINDOW_DONE);
-    assign shifted_deq_addr = (deq_addr - signed(SHIFT));
+    assign last = shift_back;
+    assign shifted_deq_addr = (deq_addr - SHIFT);
     assign deq_addr_to_compare = (window_addr_t[ADDRWIDTH-1] == 1'b0 ? deq_addr : shifted_deq_addr);
 
     assign full_t = (deq_addr_to_compare[ADDRWIDTH-1:0] == enq_addr[ADDRWIDTH-1:0]) && (deq_addr_to_compare[ADDRWIDTH] != enq_addr[ADDRWIDTH]);
     assign empty_t = (deq_addr[ADDRWIDTH-1:0] == enq_addr[ADDRWIDTH-1:0]) && (deq_addr[ADDRWIDTH] == enq_addr[ADDRWIDTH]);
     assign full = full_t;
     assign empty = empty_t;
+    
+    assign read = dequeue && !(empty_t);
+    assign write = enqueue && !(full_t);
 
 endmodule
