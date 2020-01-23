@@ -1,5 +1,6 @@
 // maximum_stream.v - Reed Foster
-// keeps track of the maximum magnitude over a set stream length
+// keeps track of the maximum magnitude (unsigned) over a set stream length
+// takes in value and index (indices expected to be increasing)
 
 module maximum_stream
     #( // parameters
@@ -8,12 +9,12 @@ module maximum_stream
         parameter K_WIDTH = 12
     )( // ports
         input clock,
-        input reset_n,
+        input reset_n, // should be reset when FFT IP starts outputting new data
         input data_valid,
         input [MAG_WIDTH-1:0] data_in,
         input [K_WIDTH-1:0] k_in,
         output [K_WIDTH-1:0] max_k,
-        output max_k_valid
+        output max_k_valid // goes high when k_in reaches DEPTH - 1; only goes to 0 on reset
     );
     // architecture
     

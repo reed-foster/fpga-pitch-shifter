@@ -9,14 +9,17 @@ module window_address_manager
         input reset_n,
         input dequeue, 
         input enqueue,
-        output full,
-        output empty,
+        //output full,
+        //output empty,
+        output [ADDRWIDTH-1:0] window_addr,
+
+        // RAM inputs
         output [ADDRWIDTH-1:0] read_addr,
         output [ADDRWIDTH-1:0] write_addr,
-        output [ADDRWIDTH-1:0] window_addr,
         output read,
         output write,
-        output last
+
+        output last // goes high when the last sample in a window is read
     );
     // architecture
 
@@ -40,7 +43,6 @@ module window_address_manager
     // counter to track which index we're at in a window (used for window function LUT)
     reg [ADDRWIDTH-1:0] window_addr_t = 0;
 
-    // ram
     always @(posedge clock)
     begin
         if (reset_n == 0)
@@ -51,7 +53,7 @@ module window_address_manager
         end 
         else
         begin
-            if (shift_back)
+            if (shift_back) // finished processing a window, start a new one at WINDOW_LENGTH/2 points back
             begin
                 deq_addr <= shifted_deq_addr;
             end
@@ -80,8 +82,8 @@ module window_address_manager
 
     assign full_t = (deq_addr_to_compare[ADDRWIDTH-1:0] == enq_addr[ADDRWIDTH-1:0]) && (deq_addr_to_compare[ADDRWIDTH] != enq_addr[ADDRWIDTH]);
     assign empty_t = (deq_addr[ADDRWIDTH-1:0] == enq_addr[ADDRWIDTH-1:0]) && (deq_addr[ADDRWIDTH] == enq_addr[ADDRWIDTH]);
-    assign full = full_t;
-    assign empty = empty_t;
+    //assign full = full_t;
+    //assign empty = empty_t;
     
     assign read = dequeue && !(empty_t);
     assign write = enqueue && !(full_t);
