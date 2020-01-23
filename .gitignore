@@ -1,7 +1,5 @@
-*.wav
 env/
 .vscode/
 *.mp3
 *.mp4
 *.webm
-project_1
