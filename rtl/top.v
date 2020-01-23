@@ -34,16 +34,18 @@ module top
         .output_last()
     );
 
-    fft fft_0
+    fft #(.INVERSE(0)) fft_0
     (
         .aclk(clock),
         .s_axis_data_tdata(),
         .s_axis_data_tlast(),
         .s_axis_data_tready(),
+        .s_axis_data_tvalid(),
         .m_axis_data_tdata(),
         .m_axis_data_tlast(),
         .m_axis_data_tuser(),
-        .m_axis_data_tvalid()
+        .m_axis_data_tvalid(),
+        .m_axis_data_tready()
     );
 
     pitch_detector pitch_detector_0
@@ -73,7 +75,7 @@ module top
         .output_last()
     );
 
-    ifft ifft_0
+    fft #(.INVERSE(1)) fft_1
     (
         .aclk(clock),
         .s_axis_data_tdata(),
@@ -82,7 +84,8 @@ module top
         .m_axis_data_tdata(),
         .m_axis_data_tlast(),
         .m_axis_data_tuser(),
-        .m_axis_data_tvalid()
+        .m_axis_data_tvalid(),
+        .m_axis_data_tready()
     );
 
 endmodule
