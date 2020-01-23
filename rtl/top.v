@@ -18,7 +18,7 @@ module top
     (
         .clock(clock),
         .reset_n(reset_n),
-        .vauxn3(vauxn3), vausxp3(vauxp3),
+        .vauxn3(vauxn3), .vausxp3(vauxp3),
         .sampled_data(adc_data),
         .data_valid(adc_valid)
     );
@@ -30,7 +30,7 @@ module top
         .input_valid(adc_valid),
         .data_in(adc_data),
         .data_out(),
-        .output_valid()
+        .output_valid(),
         .output_last()
     );
 

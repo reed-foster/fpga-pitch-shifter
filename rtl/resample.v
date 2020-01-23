@@ -1,25 +1,27 @@
-// resampler.v - Reed Foster
-// uses zero-order hold interpolation to generate
+// resample.v - Reed Foster
+// uses zero-order hold interpolation to generate rescaled DFT
 
-module resampler
+module resample
     #( // parameters
         parameter SCALE_FACTOR_INTEGER_WIDTH = 4,
-        parameter SCALE_FACTOR_FRACTION_WIDTH = 5,
-        parameter XK_WIDTH = 12 // 4096 samples
+        parameter SCALE_FACTOR_FRACTION_WIDTH = 16,
+        parameter XK_WIDTH = 12, // 4096 samples
+        parameter DFT_WIDTH = 24
     )( // ports
         input clock, reset_n,
 
         input [SCALE_FACTOR_INTEGER_WIDTH+SCALE_FACTOR_FRACTION_WIDTH-1:0] scale_factor,
         input scale_factor_valid,
-
+    
+        input [DFT_WIDTH-1:0] fft_data,
+        input [15:0] fft_user,
         input fft_last,
+        input fft_valid,
         
-        input downstream_ready, 
-        output downstream_valid, // index is valid
-        output [XK_WIDTH+SCALE_FACTOR_INTEGER_WIDTH-1:0] downstream_data, // rescaled X_k index
+        output output_valid,
+        output output_last,
 
-        output [XK_WIDTH-1:0] ram_addr, // read address
-        output ram_enable // read enable
+        output [DFT_WIDTH-1:0] data_out // rescaled X_k index
     );
     // architecture
     
