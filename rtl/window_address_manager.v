@@ -6,7 +6,7 @@ module window_address_manager
         parameter ADDRWIDTH = 12,
     )( // ports
         input clock,
-        input reset,
+        input reset_n,
         input dequeue, 
         input enqueue,
         output full,
@@ -38,9 +38,9 @@ module window_address_manager
     reg [ADDRWIDTH-1:0] window_addr_t;
 
     // ram
-    always_ff @(posedge clock)
+    always @(posedge clock)
     begin
-        if (reset)
+        if (reset_n == 0)
         begin 
             deq_addr <= 0;
             enq_addr <= 0;
