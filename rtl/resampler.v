@@ -5,7 +5,7 @@ module resampler
     #( // parameters
         parameter SCALE_FACTOR_INTEGER_WIDTH = 4,
         parameter SCALE_FACTOR_FRACTION_WIDTH = 5,
-        parameter N_WIDTH = 12 // 4096 samples
+        parameter XK_WIDTH = 12 // 4096 samples
     )( // ports
         input clock, reset_n,
 
@@ -44,7 +44,7 @@ module resampler
         .shift(downstream_ready),
         .data_in(count_enable),
         .data_out(downstream_valid)
-    )
+    );
 
     shift_reg #(.DELAY(4), .DATA_WIDTH(XK_WIDTH+SCALE_FACTOR_INTEGER_WIDTH-1)) downstream_data_delay
     (
@@ -53,7 +53,7 @@ module resampler
         .shift(downstream_ready),
         .data_in(xk),
         .data_out(downstream_data)
-    )
+    );
 
     always @(posedge clock)
     begin
