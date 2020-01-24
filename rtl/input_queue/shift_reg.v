@@ -3,12 +3,12 @@
 
 module shift_reg
     #( // parameters
-        parameter DELAY = 1,
+        parameter DELAY = 1, // number of stages in shift register
         parameter DATA_WIDTH = 1
     )( // ports
         input clock,
         input reset_n,
-        input shift,
+        input shift, // clock enable; data only shifts when shift = 1
         input [DATA_WIDTH-1:0] data_in,
         output [DATA_WIDTH-1:0] data_out
     );
@@ -34,4 +34,4 @@ module shift_reg
 
     assign data_out = data[DELAY-1];
    
-    endmodule
+endmodule
