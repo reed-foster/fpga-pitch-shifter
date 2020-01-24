@@ -37,25 +37,28 @@ signal, fs = wav_read(filename)
 ## CEG C Maj triad
 in_key = [16.35,20.60,24.50,32.70,41.20,49.00,65.41,82.41,98.00,130.8,164.8,196.0,261.6,329.6,392.0,523.3,659.3,784.0,1047,1319,1568,2093,2637,3136,4186,5274,6272]
 
-## C Pentatonic
+# C Pentatonic
 # in_key = []
 # notes = [32.703, 36.708, 41.203, 49, 55]
 # for i in range(7):
 #     for j in notes:
 #         in_key.append(j*2**i)
 
-def resample(signal, scale_amount, target_size=None):
+def resample(signal, scale_amount):
     '''
     resample a signal with zero order hold, force resizing to fit target_size
     '''
-    resampled = []
-    if target_size is None:
-        target_size=int(round(len(signal)*scale_amount))
-    for k in range(target_size):
+    resampled = np.zeros(len(signal))
+    
+    for k in range(len(signal)):
         k_s = k / scale_amount
-        k_prev = min(floor(k_s), len(signal) - 1)# integer before
+        k_prev = floor(k_s) # integer before
         
-        resampled.append(signal[k_prev])
+        if k_prev > len(signal) - 1: # If sampling out of bounds
+            resampled[k] = 0
+        else:
+            resampled[k] = signal[k_prev]
+    
     return resampled
 
 def resample_dft(dft, scale_amount):
@@ -69,23 +72,40 @@ def resample_dft(dft, scale_amount):
     # DC offset k = 0, last possible bin size//2+1, mirror 1 - size//2+1 to size - size//2+1 
     # Creates a scaled version of the first half of DFT, truncates if necessary
     center_bin = len(dft)//2
-    end_idx = 0
-    if scale_amount >= 1: 
-        end_idx = center_bin
-    else:
-        end_idx = int((len(dft) * scale_amount)//2)
+    # print(center_bin)
+    for i in range(len(resampled)):
+        src_idx1 = floor(i/scale_amount)
+        src_idx2 = floor((2*center_bin-i)/scale_amount)
 
-    for k in range(end_idx + 1):
-        k_s = k / scale_amount
-        k_prev = min(ceil(k_s), center_bin) # integer before
+        i_less_eq_c = 0 
+        if src_idx1 <= center_bin and src_idx1 > 0:
+            i_less_eq_c = dft[src_idx1]
+
+        i_great_c = 0
+        if src_idx2 < center_bin and src_idx2 > 0: 
+            i_great_c = np.conj(dft[src_idx2])
         
-        resampled[k] = dft[k_prev]
-        
-    for i in range(center_bin+1, len(dft)):
-        mirrored_idx = 2*center_bin-i
-        resampled[i] = np.conj(resampled[mirrored_idx])
-    
+        resampled[i] = i_less_eq_c if i <= center_bin else i_great_c
+
     return resampled
+
+# resample dft_resample
+#     (
+#         .clock(clock),
+#         .reset_n(reset_n),
+#         .fft_data(),
+#         .fft_user(),
+#         .fft_valid(),
+#         .scale_factor(),
+#         .scale_factor_valid(),
+#         .data_out(),
+#         .output_valid(),
+#         .output_last(),
+#         .output_ready(),
+#         .output_k()
+#     );
+
+
 
 def find_peaks_hps(signal):
   '''
@@ -94,10 +114,9 @@ def find_peaks_hps(signal):
   Global max peak should be fundamental freq, input is a subset of dft, up to 1500 Hz
   '''
   clean_sig = signal.copy()
-
   product = clean_sig.copy()
   for n in range(2, 4):
-    scaled_sig = resample_dft(clean_sig, 1/n)
+    scaled_sig = resample(clean_sig, 1/n)
     product = np.multiply(scaled_sig, product)
   
   ## Graphics stuff
@@ -119,7 +138,7 @@ def find_peaks_hps(signal):
   return product
 
 #################################################################
-dft_size = 4096
+dft_size = 2048
 step_size = dft_size//2
 t_a = step_size/fs
 
@@ -132,7 +151,7 @@ bin_freq = np.array([k*2*pi/dft_size for k in range(dft_size)])
 
 autotuned = np.zeros(len(signal))
 
-for bin in range(num_ffts):
+for bin in range(num_ffts): 
 
     ###########################################################
     # select a portion of the original signal and take its DFT
@@ -169,7 +188,8 @@ for bin in range(num_ffts):
     scale_factor = note/fundamental
 
     # scale_factor = 1.9
-    # print(scale_factor)
+    # if abs(scale_factor - 1) > 0.3:
+    #     print(scale_factor)
 
     corrected_dft = resample_dft(dft, scale_factor)
     new_signal = np.fft.ifft(corrected_dft)/(dft_size/step_size)
