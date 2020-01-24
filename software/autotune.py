@@ -16,7 +16,7 @@ j = 1j
 
 # Setup of input file
 # filename = 'sinusoid.wav'
-filename = 'audio_samples/celine.wav'
+filename = '../audio_samples/queen_full.wav'
 # filename = 'note.wav'
 signal, fs = wav_read(filename)
 
@@ -97,10 +97,8 @@ def find_peaks_hps(signal):
 
   product = clean_sig.copy()
   for n in range(2, 4):
-    scaled_sig = resample(clean_sig, 1/n)
-    pad_diff = len(clean_sig) - len(scaled_sig)
-    padded_sig = np.pad(scaled_sig, (0, pad_diff), constant_values=0)
-    product = np.multiply(padded_sig, product)
+    scaled_sig = resample_dft(clean_sig, 1/n)
+    product = np.multiply(scaled_sig, product)
   
   ## Graphics stuff
   # plt.figure()
@@ -122,30 +120,26 @@ def find_peaks_hps(signal):
 
 #################################################################
 dft_size = 4096
-step_size_analysis = dft_size//2
-t_a = step_size_analysis/fs
+step_size = dft_size//2
+t_a = step_size/fs
 
-num_ffts = (len(signal) - dft_size)//step_size_analysis+ 1
+num_ffts = (len(signal) - dft_size)//step_size + 1
 
 window = np.ones(dft_size)
 
-last_phase_synthesis = np.zeros(dft_size)
-last_phase_analysis = np.zeros(dft_size)
+last_phase = np.zeros(dft_size)
 bin_freq = np.array([k*2*pi/dft_size for k in range(dft_size)])
 
 autotuned = np.zeros(len(signal))
-
-prev_values = [0, 0]
-dft_data = []
 
 for bin in range(num_ffts):
 
     ###########################################################
     # select a portion of the original signal and take its DFT
     ###########################################################
-    sample = signal[bin*step_size_analysis:bin*step_size_analysis+dft_size]
+    sample = signal[bin * step_size : bin * step_size + dft_size]
     dft = np.fft.fft(np.multiply(sample, window))
-    mag = abs(dft)
+    mag = np.square(dft)
     phase = np.arctan2(dft.imag, dft.real)
 
     ###########################################################
@@ -155,16 +149,16 @@ for bin in range(num_ffts):
     k_cutoff = int(1500*dft_size/fs)
     k_max = find_peaks_hps(np.concatenate((np.zeros(1), mag[1:k_cutoff]))).argmax()
     # fundamental freq via dft
-    f_max = k_max/dft_size*fs
+    f_max = k_max / dft_size * fs
     
     # use phase information to more accurately estimate frequency
     # based off of relationship (omega = dphi/dt)
-    f_n = lambda n: (phase[k_max] - last_phase_analysis[k_max] + 2*pi*n)/(2*pi*t_a)
+    f_n = lambda n: (phase[k_max] - last_phase[k_max] + 2*pi*n)/(2*pi*t_a)
 
-    min_n = round((last_phase_analysis[k_max]-phase[k_max])/(2*pi) + f_max * t_a)
+    min_n = round((last_phase[k_max]-phase[k_max])/(2*pi) + f_max * t_a)
     fundamental = f_n(min_n)
     
-    last_phase_analysis = phase
+    last_phase = phase
 
     ###########################################################
     # calculate scaling factor which clamps the
@@ -178,12 +172,12 @@ for bin in range(num_ffts):
     # print(scale_factor)
 
     corrected_dft = resample_dft(dft, scale_factor)
-    new_signal = np.fft.ifft(corrected_dft)/(dft_size/step_size_analysis)
+    new_signal = np.fft.ifft(corrected_dft)/(dft_size/step_size)
 
     ###########################################################
     # add new sample to autotuned buffer
     ###########################################################
-    start = int(bin*step_size_analysis)
+    start = int(bin*step_size)
     end = start + len(new_signal)
     autotuned[start:end] = np.add(autotuned[start:end], new_signal)
 
