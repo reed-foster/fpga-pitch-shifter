@@ -4,9 +4,8 @@
 
 module maximum_stream
     #( // parameters
-        parameter DEPTH = 4096,
         parameter MAG_WIDTH = 96,
-        parameter K_WIDTH = 12
+        parameter K_WIDTH = 11
     )( // ports
         input clock,
         input reset_n, // should be reset when FFT IP starts outputting new data
@@ -17,9 +16,11 @@ module maximum_stream
         output max_k_valid // goes high when k_in reaches DEPTH - 1; only goes to 0 on reset
     );
     // architecture
+
+    localparam MAX_K = (1 << K_WIDTH) - 1;
     
-    reg [MAG_WIDTH-1:0] max;
-    reg [K_WIDTH-1:0] max_k_t;
+    reg [MAG_WIDTH-1:0] max = 0;
+    reg [K_WIDTH-1:0] max_k_t = 0;
     assign max_k = max_k_t;
 
     reg output_valid = 0;
@@ -43,7 +44,7 @@ module maximum_stream
                     max_k_t <= k_in;
                 end
             end
-            if (k_in == DEPTH - 1)
+            if (k_in == MAX_K)
             begin
                 output_valid <= 1;
             end

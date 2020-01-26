@@ -1,15 +1,13 @@
-// harmonic_product_spectrum.v - Reed Foster
+// hps_xk_gen.v - Reed Foster
 // address generator for HPS
 // this HPS implementation takes the element-wise product of three DFTS:
 //      the original DFT scaled by 1, 1/2 and 1/3
 //
 // intended to be used in conjunction with a RAM to store X[k] magnitudes
 
-module harmonic_product_spectrum
+module hps_xk_gen
     #( // parameters
-        parameter K_WIDTH = 12, // 4096 samples
-        parameter DATA_WIDTH = 34, // 34-bit fixed point
-        parameter SCALE_FACTOR = 2 // 2 or 3
+        parameter K_WIDTH = 12 // 4096 samples
     )( // ports
         input clock, reset_n,
 
@@ -21,9 +19,13 @@ module harmonic_product_spectrum
 
         // pulses high for one clock after all three addresses have been read
         // used as data_valid for combined product of all 3 DFT points
-        output triple_complete 
+        output triple_complete,
+        output k_last // goes high when k reaches K_MAX
     );
     // architecture
+
+    localparam K_MAX = 1 << K_WIDTH - 1;
+    assign k_last = (orig_counter == K_MAX);
     
     // goes high when DFT magnitudes finish storing to RAM
     // should be reset when FFT IP starts outputting new data
