@@ -9,9 +9,6 @@ module window_address_manager
         input reset_n,
         input dequeue, 
         input enqueue,
-        //output full,
-        //output empty,
-        output [ADDRWIDTH-1:0] window_addr,
 
         // RAM inputs
         output [ADDRWIDTH-1:0] read_addr,
@@ -75,7 +72,6 @@ module window_address_manager
         end
     end
    
-    assign window_addr = window_addr_t;
     assign read_addr = deq_addr;
     assign write_addr = enq_addr;
 
