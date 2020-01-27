@@ -6,7 +6,6 @@ module fft
         parameter INVERSE = 0
     )( // ports
         input aclk,
-        input s_a
 
         input [47:0] s_axis_data_tdata, // 24-bit fixed point
         input s_axis_data_tlast,
