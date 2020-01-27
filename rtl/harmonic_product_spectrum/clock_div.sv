@@ -10,9 +10,10 @@ module clock_div
         input clock_enable,
         output [WIDTH-1:0] count
     );
-    reg [$clog2(FACTOR+1):0] prescale_counter;
+    reg [$clog2(FACTOR+1):0] prescale_counter = 0;
     
-    reg counter = 0;
+    reg [WIDTH-1:0] counter = 0;
+    assign count = counter;
 
     always @(posedge clock)
     begin

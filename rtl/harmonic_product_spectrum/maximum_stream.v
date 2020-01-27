@@ -16,6 +16,13 @@ module maximum_stream
         output max_k_valid // goes high when k_in reaches DEPTH - 1; only goes to 0 on reset
     );
     // architecture
+    
+    reg [63:0] tmp;
+    always @(posedge clock)
+    begin
+        if (data_valid)
+            tmp <= data_in[71:8];
+    end
 
     localparam MAX_K = (1 << K_WIDTH) - 1;
     

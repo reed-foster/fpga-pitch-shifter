@@ -15,7 +15,7 @@ module hps_address_gen
         output [K_WIDTH-2:0] k,
         output [K_WIDTH-2:0] ram_addr, // read address
         output ram_enable, // read enable
-        output done, // asserted when k == 2**K_WIDTH-1
+        output done, // asserted when k == 2**(K_WIDTH-1)-1
         
         output triple_complete // used for data_valid after multiply stage
     );
@@ -40,24 +40,24 @@ module hps_address_gen
     end
     
     wire count_enable = clock_divide == 2'b10;
-    wire [K_WIDTH-2:0] div1, div2, div3;
-    clock_div #(.FACTOR(1), .WIDTH(K_WIDTH)) count_1 (
-        .clock(clock), .reset_n(reset_n),
-        .clock_enable(count_enable),
-        .count(div1)
-    );
-    clock_div #(.FACTOR(2), .WIDTH(K_WIDTH)) count_2 (
-        .clock(clock), .reset_n(reset_n),
-        .clock_enable(count_enable),
-        .count(div2)
-    );
-    clock_div #(.FACTOR(3), .WIDTH(K_WIDTH)) count_3 (
-        .clock(clock), .reset_n(reset_n),
-        .clock_enable(count_enable),
-        .count(div3)
-    );
+    reg [K_WIDTH-2:0] div1 = 0, div2 = 0, div3 = 0;
+    always @(posedge clock)
+    begin
+        if (reset_n == 0)
+        begin
+            div1 <= 0;
+            div2 <= 0;
+            div3 <= 0;
+        end
+        else if (count_enable)
+        begin
+            div1 <= div1 + 1;
+            div2 <= div2 + 2;
+            div3 <= div3 + 3;
+        end
+    end
     
-    wire [K_WIDTH-2:0] addr_t;
+    assign done = (div1 == (1 << (K_WIDTH-1)) - 1);
     assign ram_addr = (clock_divide == 2'b0) ? div1 : ((clock_divide == 2'b1) ? div2 : ((clock_divide == 2'b10) ? div3 : 0));
     assign k = div1;
     assign ram_enable = 1;

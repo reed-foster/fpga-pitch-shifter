@@ -4,13 +4,15 @@
 
 module harmonic_product_spectrum
     #( // parameters
-        parameter K_WIDTH = 11 // 2048 point DFT
+        parameter K_WIDTH = 11, // 2048 point DFT
+        parameter K_MAX = 70, // zero out bins greater than or equal to 70
+        parameter K_MIN = 7 // zero out bins less than or equal to 7
     )( // ports
         input clock, reset_n,
         input [47:0] fft_tdata,
         input fft_tvalid, fft_tlast,
         input [15:0] fft_tuser,
-        input cordic_ready,
+        input cordic_tready,
         output [K_WIDTH-1:0] k_max,
         output k_max_valid
     );
@@ -23,10 +25,11 @@ module harmonic_product_spectrum
     );
     
     wire [31:0] mag_ram_data; // output of BRAM to triple_element_product
+    wire [31:0] mag_ram_data_muxed; // muxed by hps_product_k_filter to do low-pass
     wire [95:0] max_stream_in; // output of triple_element_product to maximum_stream
     triple_element_product hps_product_gen (
         .clock(clock),
-        .data_in(mag_ram_data), .product(max_stream_in)
+        .data_in(mag_ram_data_muxed), .product(max_stream_in)
     );
     
     reg done_storing_mag = 0; // goes high when all magnitudes are stored to RAM, enabling this module
@@ -52,7 +55,7 @@ module harmonic_product_spectrum
     wire [K_WIDTH-1:0] k_in_delayed;
     shift_reg #(.DELAY(6), .DATA_WIDTH(K_WIDTH+2)) tlast_tvalid_k_in_delay (
         .clock(clock), .reset_n(reset_n),
-        .shift(cordic_ready),
+        .shift(cordic_tready),
         .data_in({fft_tlast, fft_tvalid, fft_tuser[K_WIDTH-1:0]}),
         .data_out({fft_tlast_delayed, fft_tvalid_delayed, k_in_delayed})
     );
@@ -70,12 +73,23 @@ module harmonic_product_spectrum
     
     wire hps_product_valid;
     wire [K_WIDTH-2:0] hps_product_k;
-    shift_reg #(.DELAY(16), .DATA_WIDTH(K_WIDTH)) product_k_delay_16 (
+    shift_reg #(.DELAY(18), .DATA_WIDTH(K_WIDTH)) product_k_delay_18 ( // delay by 16 (triple-product) + 2 (BRAM read)
         .clock(clock), .reset_n(reset_n),
         .shift(1),
         .data_in({product_valid_t, k_out}),
         .data_out({hps_product_valid, hps_product_k})
     );
+    
+    wire [K_WIDTH-2:0] hps_product_k_filter;
+    shift_reg #(.DELAY(2), .DATA_WIDTH(K_WIDTH-1)) product_k_delay_2 ( // delay by 2 (BRAM read)
+        .clock(clock), .reset_n(reset_n),
+        .shift(1),
+        .data_in(k_out),
+        .data_out(hps_product_k_filter)
+    );
+    
+    assign mag_ram_data_muxed = (hps_product_k_filter <= K_MIN) || (hps_product_k_filter >= K_MAX) ? 0 : mag_ram_data;
+    
     assign k_max[K_WIDTH-1] = 0;
     maximum_stream #(.MAG_WIDTH(96), .K_WIDTH(K_WIDTH-1)) k_max_tracker (
         .clock(clock), .reset_n(reset_n || fft_tvalid),

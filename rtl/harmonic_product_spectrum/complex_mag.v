@@ -24,8 +24,8 @@ module complex_mag // 6 clock latency
     
     wire [31:0] real_rescaled, imag_rescaled;
 
-    assign real_rescaled = real_2[38:7]; // arbitrary decision; TODO check output of FFT with real data
-    assign imag_rescaled = imag_2[38:7];
+    assign real_rescaled = real_2[39:8];
+    assign imag_rescaled = imag_2[39:8];
 
     c_addsub_0 sum ( // 2 clock latency
         .CLK(clock),
