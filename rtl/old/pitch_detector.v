@@ -12,5 +12,28 @@ module pitch_detector
         output scale_factor_valid
     );
     // architecture
+    
+    harmonic_product_spectrum #(.K_WIDTH(), .X_WIDTH()) hps
+    (
+        .fft_data_re(),
+        .fft_data_im(),
+        .fft_user(),
+        .fft_last(),
+        .fft_valid(),
+        .k_max(),
+        .k_max_valid()
+    );
+
+    phase_calculation phase_0
+    (
+        .fft_data(),
+        .fft_user(),
+        .fft_last(),
+        .fft_valid(),
+        .phase(),
+        .phase_last(),
+        .output_valid()
+    );
+
 
 endmodule
