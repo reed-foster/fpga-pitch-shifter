@@ -28,9 +28,11 @@ module cordic_module
 
     // CORDIC IP
     // 24-bit in/out CORDIC module configured to compute arctan
-    // coarse rotation enabled, blocking enabled
-    // input is 1QN (N = 22 bit fractional part)
-    // output is 2QN (N = 21 bit fractional part)
+    // pipelineing mode is optimal
+    // coarse rotation enabled
+    // blocking enabled, optimize goal is performance
+    // input is 1QN (N = 22 bit fractional part) in signed fraction
+    // output is 2QN (N = 21 bit fractional part) in radians
     // 28 clock cycle latency
     cordic_0 atan2 (
         .aclk(clock),

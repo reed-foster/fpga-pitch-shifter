@@ -95,6 +95,9 @@ module phase_detector
     wire last_phase_write_enable;
     wire last_phase_read_enable;
 
+    // BRAM IP
+    // Size: 2**(ADDR_WIDTH-1) x PHASE_WIDTH
+    // Read Latency: 2 cycles
     blk_mem_gen_0 last_phase_ram (
         .clka(clock), .clkb(clock),
         .ena(1), .wea(last_phase_write_enable),

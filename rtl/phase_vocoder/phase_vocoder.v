@@ -31,14 +31,27 @@ module phase_vocoder
     wire [K_WIDTH+PHASE_FRAC-1:0] k_max_shifted = {k_max_full_width[K_WIDTH+PHASE_FRAC-1], k_max_full_width[K_WIDTH+PHASE_FRAC-1:1]};
     
     wire [PHASE_WIDTH-1:0] phase_2pi;
+    // Parallel Multiplier IP
+    // A: 24-bit signed
+    // B: 21-bit unsigned
+    // P: [44:21] of product (product is [44:0])
+    // Constructed with Mults, Speed Optimized
+    // 4 cycle latency
     mult_gen_0 phase_2pi_div ( // shifts output right by 21 to keep 21 bit fraction
         .CLK(clock),
         .A(phase),
         .B(INV_2PI),
         .P(phase_2pi)
     );
+
     wire [PHASE_WIDTH-1:0] last_phase_2pi;
-    mult_gen_0 last_phase_2pi_div ( // 4 cycle latency
+    // Parallel Multiplier IP
+    // A: 24-bit signed
+    // B: 21-bit unsigned
+    // P: [44:21] of product (product is [44:0])
+    // Constructed with Mults, Speed Optimized
+    // 4 cycle latency
+    mult_gen_0 last_phase_2pi_div ( 
         .CLK(clock),
         .A(last_phase),
         .B(INV_2PI),
@@ -46,7 +59,13 @@ module phase_vocoder
     );
     
     wire [PHASE_WIDTH-1:0] delta_phase;
-    c_addsub_0 sub_last_phase_phase ( // 2 cycle latency
+    // DSP48 Add/Sub IP
+    // A: 24-bit signed
+    // B: 24-bit signed
+    // S: 24-bit difference (A-B)
+    // Configured for automatic latency
+    // 2 cycle latency
+    c_addsub_0 sub_last_phase_phase ( 
         .CLK(clock),
         .A(last_phase_2pi),
         .B(phase_2pi),
@@ -54,7 +73,13 @@ module phase_vocoder
     );
     
     wire [K_WIDTH+PHASE_FRAC-1:0] n_opt_unrounded;
-    c_addsub_1 add_k_delta_phase ( // 2 cycle latency
+    // DPS48 Add/Sub IP
+    // A: 32-bit signed
+    // B: 24-bit signed
+    // S: 32-bit sum (A+B)
+    // Configured for automatic latency
+    // 2 cycle latency
+    c_addsub_1 add_k_delta_phase ( 
         .CLK(clock),
         .A(k_max_shifted),
         .B(delta_phase),
@@ -68,20 +93,31 @@ module phase_vocoder
     );
     
     wire [K_WIDTH+PHASE_WIDTH-1:0] fundamental_fs;
+    // DPS48 Add/Sub IP
+    // A: 32-bit signed
+    // B: 24-bit signed
+    // S: 32-bit difference (A-B)
+    // Configured for automatic latency
+    // 2 cycle latency
     c_addsub_2 sub_n_opt_delta_phase ( // 2 cycle latency
         .CLK(clock),
         .A(n_opt),
         .B(delta_phase),
         .S(fundamental_fs)
     );
-    
-    mult_gen_1 fundamental_fs_fs_div ( // 4 cycle latency
+
+    // Parallel Multiplier IP
+    // A: 32-bit unsigned
+    // B: 11-bit unsigned
+    // P: [42:5] of product (product is [42:0])
+    // Constructed with Mults, Speed Optimized
+    // 4 cycle latency
+    mult_gen_1 fundamental_fs_fs_div ( 
         .CLK(clock),
         .A(fundamental_fs),
         .B(INV_T),
         .P(fundamental)
     );
-    
 
     shift_reg #(.DELAY(MODULE_LATENCY), .DATA_WIDTH(1)) valid_delay (
         .clock(clock), .reset_n(reset_n),
@@ -90,5 +126,4 @@ module phase_vocoder
         .data_out(fundamental_valid)
     );
 
-    
 endmodule
