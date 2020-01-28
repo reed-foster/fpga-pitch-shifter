@@ -13,25 +13,16 @@ logic [11:0] sample_input [0:M-1];
 logic reset_n;
 
 logic [15:0] cycle; // Counter for the address of sample
-
+logic [11:0] counter;
 logic last, ready = 1, sampled_adc_valid;
 logic [11:0] sampled_adc_in;
-logic [11:0] data;
-
+logic OUTPUT_RATE = 12'd2267; // Clock cycles per output
 assign sampled_adc_valid = 1;
-
-input_queue uut
-   (.clock(clk), .reset_n(reset_n),
-    .adc_sample(sampled_adc_in),
-    .adc_valid(sampled_adc_valid),
-    .data(data),
-    .valid(valid),
-    .ready(ready),
-    .last(last));
 
 initial begin
     reset_n = 1'b0;
     cycle = 16'b0;
+    counter = 12'b0;
     $readmemh("queen.dat", sample_input);
     #20;
     reset_n = 1'b1;
@@ -43,7 +34,13 @@ begin
     begin
         $stop;
     end
-    cycle <= cycle + 1;
+    if (counter == OUTPUT_RATE) begin
+        cycle <= cycle + 1;
+        counter <= 0;
+    end
+    else begin
+        counter <= counter + 1;
+    end
 end
 
 always @(posedge clk) begin
@@ -51,17 +48,5 @@ always @(posedge clk) begin
 end
 
 always #5 clk = ~clk;
-
-initial begin
-    ready = 1;
-    #500
-    ready = 0;
-    #200
-    ready = 1;
-    #10000
-    ready = 0;
-    #200
-    ready = 1;
-end
 
 endmodule

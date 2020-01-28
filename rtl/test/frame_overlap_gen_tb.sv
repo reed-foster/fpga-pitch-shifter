@@ -25,7 +25,7 @@ module frame_overlap_gen_tb;
 logic clk = 1'b0;
 logic rst = 1'b0;
 logic [35:0] test_ifft_data_in;
-logic [11:0] test_ifft_addr_in;
+logic [10:0] test_ifft_addr_in;
 logic test_valid;
 
 frame_overlap_gen dut(
@@ -46,10 +46,10 @@ rst = 1'b0;
 
 
 for (int i = 0; i < 10000; i++) begin
-    if (i > 0 && i % 4096 == 0) begin
+    if (i > 0 && i % 2048 == 0) begin
         test_valid = 1'b0;
         i = 0;
-        #46400000 // Simulate ifft processing
+        #23200000 // Simulate ifft processing
         test_valid = 1'b0;
     end
 
