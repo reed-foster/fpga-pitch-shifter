@@ -3,7 +3,7 @@
 
 module fifo
     #( // parameters
-        parameter ADDRWIDTH = 12,
+        parameter ADDRWIDTH = 11,
         parameter WIDTH = 12
     )( // ports
         input clock, reset,
@@ -19,6 +19,8 @@ module fifo
     reg [ADDRWIDTH:0] deq_addr, enq_addr;   // enq_addr points to empty, deq_addr points to full
     wire full_t, empty_t;
     
+    // Stores sample data, half of a frame depth (10 bits 1024 samples)
+    // Dual port, 10 bit addr 12 bit data, no en, 2 cycle read latency
     blk_mem_gen_2 data_mem (
       .clka(clock),    // input wire clka
       .ena(1'b1),      // input wire ena
