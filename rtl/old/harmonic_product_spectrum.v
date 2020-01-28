@@ -4,7 +4,7 @@
 
 module harmonic_product_spectrum
     #( // parameters
-        parameter K_WIDTH = 12 // 4096 samples
+        parameter K_WIDTH = 12, // 4096 samples
         parameter X_WIDTH = 21 // input to FFT is 21-bit fixed point
     )( // ports
         input clock, reset_n,
@@ -18,7 +18,7 @@ module harmonic_product_spectrum
         output k_max_valid
     );
 
-    localparam MAG_WIDTH = 6*(X_WIDTH+K_WIDTH+1) // (x^2)^3 = x^6
+    localparam MAG_WIDTH = 6*(X_WIDTH+K_WIDTH+1); // (x^2)^3 = x^6
     
     ///////////////////////////////
     // Calculate Magnitude
