@@ -1,4 +1,4 @@
-`timescale 1ps / 1ps
+`timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: 
@@ -23,7 +23,7 @@
 module resampler_tb;
 
 logic [79:0] fft_data_out; // Sim data
-logic [12:0] fft_user_out; // Sim addr
+logic [10:0] fft_user_out; // Sim addr
 logic fft_valid;
 logic fft_last;
 logic [23:0] scale_factor = 24'h100000; 
@@ -52,10 +52,10 @@ assign dut_data_out_16 = data_out;
 initial begin
     reset = 1'b1;
     fft_valid = 1'b0;
-    #10000;
+    #10;
     reset = 1'b0;
-    fft_user_out = 13'b0;
-    #5000;
+    fft_user_out = 11'b0;
+    #5;
     fft_valid = 1'b1;
 end
 
@@ -63,15 +63,15 @@ always @(posedge clk) begin
     fft_user_out <= fft_user_out + 1;
     fft_last <= 0;
 
-    if (fft_user_out == 13'd4094) begin
+    if (fft_user_out == 11'd2046) begin
         fft_last <= 1;
     end
-    if (fft_user_out == 13'd4095) begin
+    if (fft_user_out == 12'd2047) begin
         fft_user_out <= 0;
         fft_valid <= 0;
     end
 end
 
-always #5000 clk = ~clk;
+always #5 clk = ~clk;
 
 endmodule

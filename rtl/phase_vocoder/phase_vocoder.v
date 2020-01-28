@@ -37,7 +37,7 @@ module phase_vocoder
     // P: [44:21] of product (product is [44:0])
     // Constructed with Mults, Speed Optimized
     // 4 cycle latency
-    mult_gen_0 phase_2pi_div ( // shifts output right by 21 to keep 21 bit fraction
+    mult_gen_1 phase_2pi_div ( // shifts output right by 21 to keep 21 bit fraction
         .CLK(clock),
         .A(phase),
         .B(INV_2PI),
@@ -51,7 +51,7 @@ module phase_vocoder
     // P: [44:21] of product (product is [44:0])
     // Constructed with Mults, Speed Optimized
     // 4 cycle latency
-    mult_gen_0 last_phase_2pi_div ( 
+    mult_gen_1 last_phase_2pi_div ( 
         .CLK(clock),
         .A(last_phase),
         .B(INV_2PI),
@@ -112,7 +112,7 @@ module phase_vocoder
     // P: [42:5] of product (product is [42:0])
     // Constructed with Mults, Speed Optimized
     // 4 cycle latency
-    mult_gen_1 fundamental_fs_fs_div ( 
+    mult_gen_2 fundamental_fs_fs_div ( 
         .CLK(clock),
         .A(fundamental_fs),
         .B(INV_T),
