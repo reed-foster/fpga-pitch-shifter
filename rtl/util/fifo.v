@@ -40,7 +40,7 @@ module fifo
                                                           .data_in(dequeue && !empty_t),
                                                           .data_out(data_valid));
     // read_ptr
-    always_ff @(posedge clock)
+    always @(posedge clock)
     begin
         if (reset)
             deq_addr <= 0;
@@ -49,7 +49,7 @@ module fifo
     end
 
     // write
-    always_ff @(posedge clock)
+    always @(posedge clock)
     begin
         if (reset)
             enq_addr <= 0;

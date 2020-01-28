@@ -23,7 +23,7 @@
 module resampler_tb;
 
 logic [79:0] fft_data_out; // Sim data
-logic [12:0] fft_user_out; // Sim addr
+logic [10:0] fft_user_out; // Sim addr
 logic fft_valid;
 logic fft_last;
 logic [23:0] scale_factor = 24'h100000; 
@@ -35,9 +35,9 @@ logic reset = 1'b0, clk = 1'b0;
 logic [79:0] data_out;
 logic output_valid;
 logic output_last;
-logic [11:0] output_k;
+logic [10:0] output_k;
 
-logic [12:0] dut_data_out_16;
+logic [11:0] dut_data_out_16;
 
 resampler dut(.clk(clk), .rst(reset), .fft_data(fft_data_out),
               .fft_user(fft_user_out), .fft_valid(fft_valid), .fft_last(fft_last),
@@ -48,25 +48,21 @@ resampler dut(.clk(clk), .rst(reset), .fft_data(fft_data_out),
              
 assign fft_data_out = 2 * fft_user_out;             
 assign dut_data_out_16 = data_out;
+assign fft_last = (fft_user_out == 11'd2047);
 
 initial begin
     reset = 1'b1;
     fft_valid = 1'b0;
     #10000;
     reset = 1'b0;
-    fft_user_out = 13'b0;
+    fft_user_out = 12'b0;
     #5000;
     fft_valid = 1'b1;
 end
 
 always @(posedge clk) begin
     fft_user_out <= fft_user_out + 1;
-    fft_last <= 0;
-
-    if (fft_user_out == 13'd4094) begin
-        fft_last <= 1;
-    end
-    if (fft_user_out == 13'd4095) begin
+    if (fft_user_out == 11'd2047) begin
         fft_user_out <= 0;
         fft_valid <= 0;
     end

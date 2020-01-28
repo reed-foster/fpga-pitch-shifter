@@ -1,14 +1,15 @@
-`timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Tim Magoun 1/24/2020 
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module resampler(
+module resampler#(
+    parameter WIDTH = 11
+    )(
     input clk,
     input rst,
     input [79:0] fft_data,
-    input [11:0] fft_user,
+    input [WIDTH-1:0] fft_user,
     input fft_valid,
     input fft_last,
     input [23:0] scale_factor,
@@ -21,14 +22,14 @@ module resampler(
     );
     
     // CONSTANTS
-    wire [11:0] center_bin = 12'd2048;
-    wire [12:0] center_bin_2 = 2 * center_bin;
+    wire [WIDTH-1:0] center_bin = 11'd1024;
+    wire [WIDTH:0] center_bin_2 = 2 * center_bin;
     
     // Address out and COUNT
-    reg [11:0] count;       // counter reg (i)
-    wire [11:0] idx_out;    // write index out after #5
+    reg [WIDTH-1:0] count;       // counter reg (i)
+    wire [WIDTH-1:0] idx_out;    // write index out after #5
     
-    shift_reg#(.DELAY(5),.DATA_WIDTH(12)) count_shift_reg ( // ports
+    shift_reg#(.DELAY(5),.DATA_WIDTH(WIDTH)) count_shift_reg ( // ports
                                 .clock(clk),
                                 .reset_n(~rst),
                                 .shift(1'b1),
@@ -60,11 +61,11 @@ module resampler(
     wire [79:0] final_data_out_b = conj_sel ? data_out_b : data_out_b_conj; // Before zero select
     
     // Address options out of multipliers and shifters
-    wire [11:0] final_read_addr = idx_sel ? final_idx1 : final_idx2;
-    wire [35:0] idx1;
-    wire [35:0] idx2;
-    wire [11:0] final_idx1 = idx1[32:21];    // Floor of scaled idx
-    wire [11:0] final_idx2 = idx2[32:21];    // Floor of scaled idx mirrored
+    wire [WIDTH-1:0] final_read_addr = idx_sel ? final_idx1 : final_idx2;
+    wire [34:0] idx1;
+    wire [34:0] idx2;
+    wire [WIDTH-1:0] final_idx1 = idx1[31:21];    // Floor of scaled idx
+    wire [WIDTH-1:0] final_idx2 = idx2[31:21];    // Floor of scaled idx mirrored
      
     // Comparisions for index bound
     wire idx1_le_c = (final_idx1 <= center_bin);
@@ -82,30 +83,33 @@ module resampler(
     
     assign output_last = (idx_out == (center_bin_2 - 1'b1));
     
-    mult_gen_0 mult_idx1 (
+    // A - count unsigned int WIDTH
+    // B - scale_factor unsigned fixed point 21 bit long frac 24 bit total
+    // 3 cycle latency
+    mult_resampler mult_idx1 (
       .CLK(clk),  // input wire CLK
-      .A(count),      // input wire [11 : 0] A
+      .A(count),      // input wire [WIDTH-1 : 0] A
       .B(scale_factor),      // input wire [23 : 0] B
-      .P(idx1)      // output wire [35 : 0] P
+      .P(idx1)      // output wire [34 : 0] P
     );
-    mult_gen_0 mult_idx2 (
+    mult_resampler mult_idx2 (
         .CLK(clk),  // input wire CLK
-        .A(center_bin_2 - count),      // input wire [11 : 0] A
+        .A(center_bin_2 - count),      // input wire [WIDTH-1 : 0] A
         .B(scale_factor),      // input wire [23 : 0] B
-        .P(idx2)      // output wire [35 : 0] P
+        .P(idx2)      // output wire [34 : 0] P
     );
     
-    blk_mem_gen_0 fft_content (
+    
+    // True dual port 11 bit addr 80 bit data common clock
+    blk_mem_resampler fft_content (
           .clka(clk),    // input wire clka
-          .ena(1'b1),      // input wire ena
           .wea(fft_valid),      // input wire [0 : 0] wea
-          .addra(fft_user),  // input wire [11 : 0] addra
+          .addra(fft_user),  // input wire [WIDTH-1 : 0] addra
           .dina(fft_data),    // input wire [79 : 0] dina
           .douta(),  // output wire [79 : 0] douta --NC--
           .clkb(clk),    // input wire clkb
-          .enb(1'b1),      // input wire enb
           .web(1'b0),      // input wire [0 : 0] web
-          .addrb(final_read_addr),  // input wire [11 : 0] addrb
+          .addrb(final_read_addr),  // input wire [WIDTH-1 : 0] addrb
           .dinb(80'b0),    // input wire [79 : 0] dinb
           .doutb(data_out_b)  // output wire [79 : 0] doutb
     );
@@ -124,7 +128,7 @@ module resampler(
                                 .data_in(busy),
                                 .data_out(output_valid));
                                 
-    shift_reg#(.DELAY(5),.DATA_WIDTH(12)) output_k_shift_reg ( // ports
+    shift_reg#(.DELAY(5),.DATA_WIDTH(WIDTH)) output_k_shift_reg ( // ports
                                 .clock(clk),
                                 .reset_n(~rst),
                                 .shift(1'b1),
@@ -147,24 +151,21 @@ module resampler(
             count <= 0;
         end else if (fft_valid) begin
             input_complete <= 1'b0;
+            busy <= 1'b0;
         end
         // Enters processing stage
         if (input_complete && output_ready && scale_factor_valid) begin
             busy <= 1'b1;
         end
-        else begin
-            busy <= 1'b0;
-        end
-        
         // Increments one cycle after starting to process
         if (busy) begin
-            if (count < 12'd4095) begin
+            if (count < 11'd2047) begin
                 count <= count + 1;
             end
             else begin
                 count <= 0;
                 busy <= 0;
-                input_complete <= 0; // TESTING ONLY
+                input_complete <= 0;
             end
         end
     end
