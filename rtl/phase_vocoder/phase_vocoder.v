@@ -37,7 +37,7 @@ module phase_vocoder
     // P: [44:21] of product (product is [44:0])
     // Constructed with Mults, Speed Optimized
     // 4 cycle latency
-    mult_gen_0 phase_2pi_div ( // shifts output right by 21 to keep 21 bit fraction
+    mult_gen_phase_vocoder_0 phase_2pi_div ( // shifts output right by 21 to keep 21 bit fraction
         .CLK(clock),
         .A(phase),
         .B(INV_2PI),
@@ -51,7 +51,7 @@ module phase_vocoder
     // P: [44:21] of product (product is [44:0])
     // Constructed with Mults, Speed Optimized
     // 4 cycle latency
-    mult_gen_0 last_phase_2pi_div ( 
+    mult_gen_phase_vocoder_0 last_phase_2pi_div ( 
         .CLK(clock),
         .A(last_phase),
         .B(INV_2PI),
@@ -65,7 +65,7 @@ module phase_vocoder
     // S: 24-bit difference (A-B)
     // Configured for automatic latency
     // 2 cycle latency
-    c_addsub_0 sub_last_phase_phase ( 
+    c_addsub_phase_vocoder_0 sub_last_phase_phase ( 
         .CLK(clock),
         .A(last_phase_2pi),
         .B(phase_2pi),
@@ -79,7 +79,7 @@ module phase_vocoder
     // S: 32-bit sum (A+B)
     // Configured for automatic latency
     // 2 cycle latency
-    c_addsub_1 add_k_delta_phase ( 
+    c_addsub_phase_vocoder_1 add_k_delta_phase ( 
         .CLK(clock),
         .A(k_max_shifted),
         .B(delta_phase),
@@ -92,14 +92,14 @@ module phase_vocoder
         .fixed_out(n_opt)
     );
     
-    wire [K_WIDTH+PHASE_WIDTH-1:0] fundamental_fs;
+    wire [K_WIDTH+PHASE_FRAC-1:0] fundamental_fs;
     // DPS48 Add/Sub IP
     // A: 32-bit signed
     // B: 24-bit signed
     // S: 32-bit difference (A-B)
     // Configured for automatic latency
     // 2 cycle latency
-    c_addsub_2 sub_n_opt_delta_phase ( // 2 cycle latency
+    c_addsub_phase_vocoder_2 sub_n_opt_delta_phase ( // 2 cycle latency
         .CLK(clock),
         .A(n_opt),
         .B(delta_phase),
@@ -112,7 +112,7 @@ module phase_vocoder
     // P: [42:5] of product (product is [42:0])
     // Constructed with Mults, Speed Optimized
     // 4 cycle latency
-    mult_gen_1 fundamental_fs_fs_div ( 
+    mult_gen_phase_vocoder_1 fundamental_fs_fs_div ( 
         .CLK(clock),
         .A(fundamental_fs),
         .B(INV_T),
